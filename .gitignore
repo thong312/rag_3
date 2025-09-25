@@ -1,0 +1,20 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+.DS_Store
+.pdf
+# Chroma database
+chroma/
+chroma_db/
+chroma_index/
+db
+debug_vectorstore.py
+test.py
+test_qdrant_api.py
+main.py
+pdf
+.python-version
+bm25_cache.pkl
+docs_cache.pkl
+pdf
