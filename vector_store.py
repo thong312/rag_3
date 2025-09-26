@@ -5,7 +5,7 @@ from pypdf import PdfReader
 from typing import List
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams
-
+import mlflow
 from langchain.schema import Document
 
 from models import get_embeddings, get_text_splitter
@@ -261,7 +261,7 @@ class VectorStoreManager:
             #  Update BM25 index bằng instance bm25_search của chính VectorStoreManager
             self.bm25_search.add_documents(documents)
             print("BM25 index updated incrementally")
-
+            return documents
         except Exception as e:
             print(f"Error adding documents: {e}")
             raise e

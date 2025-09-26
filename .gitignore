@@ -18,3 +18,4 @@ pdf
 bm25_cache.pkl
 docs_cache.pkl
 pdf
+mlruns

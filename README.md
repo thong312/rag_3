@@ -9,4 +9,3 @@ project/
 ├── db/                 # Thư mục lưu vector database
 └── pdf/               # Thư mục lưu file PDF upload
 
-"# rag_3" 

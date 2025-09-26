@@ -1,11 +1,12 @@
 
+import time
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains.retrieval import create_retrieval_chain
 from langchain.chains.history_aware_retriever import create_history_aware_retriever
 from typing import Dict, Any, Optional, List
-
-import ollama
-
+from langchain.schema import Document
+import mlflow
+from MLOps.train import MLflowTracker
 from rag.handler import RAGHandler
 from models import build_prompt_with_history, get_llm, get_llm_stream, get_rag_prompt, get_retriever_prompt, build_prompt_with_history_longdoc
 from vector_store import VectorStoreManager
@@ -20,6 +21,7 @@ class ChatService:
         self.vector_manager = VectorStoreManager()
         self.chat_history = ChatHistory()
         self.rag_handler = RAGHandler()
+        self.mlflow_tracker = MLflowTracker(experiment_name="chatbot_inference")
         # self.retriever = vector_store.as_retriever(search_kwargs={"k": 1})
     def simple_chat(self, query: str) -> str:
         """Simple chat without RAG"""
@@ -267,38 +269,116 @@ class ChatService:
     #     for i in range(0, len(response_text), 20):
     #         yield response_text[i:i+20]
 
+    # def chat_with_history_stream(
+    #     self, query: str, search_type: str = "hybrid",
+    #     k: int = None, alpha: float = 0.5,
+    #     metadata_filter=None, use_rerank: bool = True
+    # ):
+    #     if search_type == "hybrid":
+    #         result = self.hybrid_chat(query, k=k, alpha=alpha,
+    #                                 metadata_filter=metadata_filter,
+    #                                 use_rerank=use_rerank)
+    #     elif search_type == "rag":
+    #         result = self.rag_chat(query)
+    #     elif search_type == "simple":
+    #         result = {"answer": self.simple_chat(query), "sources": []}
+    #     else:
+    #         yield f"[ERROR] Unknown search type: {search_type}"
+    #         return
+        
+    #     docs = result.get("sources", [])[:k] if k else result.get("sources", [])
+    #     # using for normal doc
+    #     # final_prompt = build_prompt_with_history_longdoc(
+    #     #     query, docs, history=self.chat_history.get_messages()
+    #     # )
+    #     # using for idiom doc
+    #     final_prompt = build_prompt_with_history(
+    #         query, docs, history=self.chat_history.get_messages()
+    #     )
+    #     full_response = ""
+    #     for chunk in self.llm_stream.stream(
+    #         messages=[{"role": "user", "content": final_prompt}],
+    #     ):
+    #         full_response += chunk
+    #         yield chunk
+        
+    #     self.chat_history.add_human_message(query)
+    #     self.chat_history.add_ai_message(full_response.strip())
     def chat_with_history_stream(
         self, query: str, search_type: str = "hybrid",
         k: int = None, alpha: float = 0.5,
         metadata_filter=None, use_rerank: bool = True
     ):
-        if search_type == "hybrid":
-            result = self.hybrid_chat(query, k=k, alpha=alpha,
-                                    metadata_filter=metadata_filter,
-                                    use_rerank=use_rerank)
-        elif search_type == "rag":
-            result = self.rag_chat(query)
-        elif search_type == "simple":
-            result = {"answer": self.simple_chat(query), "sources": []}
-        else:
-            yield f"[ERROR] Unknown search type: {search_type}"
-            return
-        
-        docs = result.get("sources", [])[:k] if k else result.get("sources", [])
-        # using for normal doc
-        # final_prompt = build_prompt_with_history_longdoc(
-        #     query, docs, history=self.chat_history.get_messages()
-        # )
-        # using for idiom doc
-        final_prompt = build_prompt_with_history(
-            query, docs, history=self.chat_history.get_messages()
-        )
-        full_response = ""
-        for chunk in self.llm_stream.stream(
-            messages=[{"role": "user", "content": final_prompt}],
-        ):
-            full_response += chunk
-            yield chunk
-        
-        self.chat_history.add_human_message(query)
-        self.chat_history.add_ai_message(full_response.strip())
+        run_name = f"chat_stream_{int(time.time())}"
+        with self.mlflow_tracker.start_run(run_name=run_name):
+            # === Log parameters ===
+            params = {
+                "search_type": search_type,
+                "k": k,
+                "alpha": alpha,
+                "use_rerank": use_rerank
+            }
+            self.mlflow_tracker.log_params(params)
+
+            # === Retrieval phase ===
+            start_time = time.time()
+            if search_type == "hybrid":
+                result = self.hybrid_chat(query, k=k, alpha=alpha,
+                                        metadata_filter=metadata_filter,
+                                        use_rerank=use_rerank)
+            elif search_type == "rag":
+                result = self.rag_chat(query)
+            elif search_type == "simple":
+                result = {"answer": self.simple_chat(query), "sources": []}
+            else:
+                yield f"[ERROR] Unknown search type: {search_type}"
+                return
+
+            docs = result.get("sources", [])[:k] if k else result.get("sources", [])
+
+            final_prompt = build_prompt_with_history(
+                query, docs, history=self.chat_history.get_messages()
+            )
+
+            # === Streaming phase ===
+            full_response = ""
+            for chunk in self.llm_stream.stream(
+                messages=[{"role": "user", "content": final_prompt}],
+            ):
+                full_response += chunk
+                yield chunk
+
+            end_time = time.time()
+
+            # === Logging metrics ===
+            metrics = {
+                "response_time": end_time - start_time,
+                "chat_history_length": len(self.chat_history)
+            }
+            self.mlflow_tracker.log_metrics(metrics)
+
+            # === Logging dataset (history + docs) ===
+            import pandas as pd
+            sources_list = []
+            for d in docs:
+                if isinstance(d, Document):
+                    sources_list.append(d.page_content)
+                else:
+                    sources_list.append(str(d))
+
+            df = pd.DataFrame({
+                "query": [query],
+                "response": [full_response.strip()],
+                "sources": [sources_list]
+            })
+            self.mlflow_tracker.log_table(df, "chat_dataset.json")
+
+
+            # === Logging tags ===
+            import mlflow
+            mlflow.set_tag("component", "chat_with_history_stream")
+            mlflow.set_tag("mode", search_type)
+
+            # Update history
+            self.chat_history.add_human_message(query)
+            self.chat_history.add_ai_message(full_response.strip())
