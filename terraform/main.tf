@@ -4,7 +4,7 @@ provider "aws" {
 
 resource "aws_instance" "rag_server" {
   ami           = var.ami_id
-  instance_type = "t3.medium"
+  instance_type = "t3.micro"
   
   root_block_device {
     volume_size = 30
