@@ -1,25 +1,22 @@
-# # Use Python base image
-# FROM python:3.12.11-slim
+# Use Python base image
+FROM python:3.12-slim
 
-# # Install system dependencies
-# RUN apt-get update && apt-get install -y \
-#     curl \
-#     build-essential \
-#     && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
 
-# # Install Ollama (you'll need to adapt this based on your system architecture)
-# RUN curl -L https://ollama.ai/download/ollama-linux-amd64 -o /usr/local/bin/ollama \
-#     && chmod +x /usr/local/bin/ollama
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
-# # Set working directory
-# WORKDIR /app
+# Copy requirements and install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy application code
+COPY . .
 
-# # Copy application code
-# COPY . .
+# Set environment variables
+ENV PYTHONPATH=/app
 
-# # Expose the port your Flask app runs on
-# EXPOSE 8080
-
-# # Start Ollama service and your application
-# CMD ["bash", "-c", "ollama serve & python app2.py"]
+# Run the application
+CMD ["python", "main.py"]
