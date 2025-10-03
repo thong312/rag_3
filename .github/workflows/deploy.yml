@@ -6,7 +6,7 @@ on:
 
 env:
   AWS_REGION: ap-southeast-1
-  ECR_REPOSITORY: rag-app
+  ECR_REPOSITORY: rag_3
   
 jobs:
   build-and-push:
