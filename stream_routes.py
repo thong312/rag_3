@@ -38,7 +38,7 @@ def chat_stream():
                 metadata_filter=metadata_filter,
                 use_rerank=use_rerank
             ):
-                print(f"[DEBUG] stream chunk: {chunk}", flush=True)
+                # print(f"[DEBUG] stream chunk: {chunk}", flush=True)
                 yield sse_format({"text": chunk})
 
             # Gửi event kết thúc

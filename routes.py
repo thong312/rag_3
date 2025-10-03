@@ -1,8 +1,9 @@
-from flask import Blueprint, request
+from flask import Blueprint, jsonify, request
 from chat.service import ChatService
 from vector_store import VectorStoreManager
 from config import PDF_FOLDER
 import os
+
 
 # Create blueprint
 api_bp = Blueprint('api', __name__)
@@ -192,8 +193,20 @@ def chat():
     )
     return result
 
+# @api_bp.route("/clear_indexes", methods=["POST"])
+# def clear_indexes():
+#     """Clear search indexes and caches"""
+#     result = chat_service.rag_handler.clear_search_indexes()
+#     return result
+
+
+
 @api_bp.route("/clear_indexes", methods=["POST"])
 def clear_indexes():
     """Clear search indexes and caches"""
-    result = chat_service.rag_handler.clear_search_indexes()
-    return result
+    success = chat_service.rag_handler.clear_search_indexes()
+    if success:
+        return jsonify({"status": "success", "message": "Indexes and caches cleared"}), 200
+    else:
+        return jsonify({"status": "error", "message": "Failed to clear indexes/caches"}), 500
+ 

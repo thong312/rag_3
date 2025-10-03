@@ -60,7 +60,7 @@ class VectorStoreManager:
     
     def load_vector_store(self):
         """Load existing vector store"""
-        print("Loading Qdrant vector store...")
+        # print("Loading Qdrant vector store...")
         try:
             vector_store = QdrantVectorStore.from_existing_collection(
                 collection_name=self.collection_name,
@@ -71,7 +71,7 @@ class VectorStoreManager:
             # Kiểm tra số lượng documents
             collection_info = self.client.get_collection(self.collection_name)
             doc_count = collection_info.points_count
-            print(f"Qdrant vector store loaded with {doc_count} documents")
+            # print(f"Qdrant vector store loaded with {doc_count} documents")
             
             if doc_count == 0:
                 print("Warning: Vector store is empty!")

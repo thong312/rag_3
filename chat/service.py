@@ -311,7 +311,6 @@ class ChatService:
     ):
         run_name = f"chat_stream_{int(time.time())}"
         with self.mlflow_tracker.start_run(run_name=run_name):
-            # === Log parameters ===
             params = {
                 "search_type": search_type,
                 "k": k,
@@ -370,7 +369,7 @@ class ChatService:
                 "query": [query],
                 "response": [full_response.strip()],
                 "sources": [sources_list]
-            })
+                })
             self.mlflow_tracker.log_table(df, "chat_dataset.json")
 
 

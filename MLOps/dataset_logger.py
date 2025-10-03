@@ -10,7 +10,7 @@ class DatasetLogger:
 
     def __init__(self, file_path="chat_dataset.jsonl"):
         self.file_path = file_path
-        # Nếu chưa có file thì tạo
+        # Create file if it doesn't exist
         if not os.path.exists(self.file_path):
             with open(self.file_path, "w", encoding="utf-8") as f:
                 pass
@@ -24,4 +24,3 @@ class DatasetLogger:
         }
         with open(self.file_path, "a", encoding="utf-8") as f:
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")
-        print(f"[DatasetLogger] Saved entry: {entry}")

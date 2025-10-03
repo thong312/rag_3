@@ -98,22 +98,32 @@ class BM25Search:
             return True
         return all(doc.metadata.get(k) == v for k, v in metadata_filter.items())
 
-    def clear_index(self):
-        """Clear BM25 index and cache"""
+    # def clear_index(self):
+    #     """Clear BM25 index and cache"""
+    #     try:
+    #         print("Clearing BM25 index...")
+    #         self.bm25 = None
+    #         self.documents = []
+            
+    #         if self.cache_manager:
+    #             cache_cleared = self.cache_manager.clear_cache()
+    #             if cache_cleared:
+    #                 print("✓ BM25 index and cache cleared successfully")
+    #             else:
+    #                 print("! Warning: Failed to clear cache files")
+            
+    #     except Exception as e:
+    #         print(f"! Error clearing index: {str(e)}")
+    def clear_cache(self) -> bool:
         try:
-            print("Clearing BM25 index...")
-            self.bm25 = None
-            self.documents = []
-            
-            if self.cache_manager:
-                cache_cleared = self.cache_manager.clear_cache()
-                if cache_cleared:
-                    print("✓ BM25 index and cache cleared successfully")
-                else:
-                    print("! Warning: Failed to clear cache files")
-            
+            self.client.delete("bm25_model")
+            self.client.delete("bm25_docs")
+            print("Redis cache cleared successfully")
+            return True
         except Exception as e:
-            print(f"! Error clearing index: {str(e)}")
+            print(f"Error clearing Redis cache: {e}")
+            return False
+
 
     def get_status(self) -> Dict[str, Any]:
         """Get current status of BM25 index"""

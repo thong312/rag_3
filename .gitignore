@@ -19,3 +19,18 @@ bm25_cache.pkl
 docs_cache.pkl
 pdf
 mlruns
+models
+llama_cpp_python_linux_whl
+
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
+
+# Ansible
+*.retry
+
+# SSH Keys
+*.pem
