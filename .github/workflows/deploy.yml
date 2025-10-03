@@ -32,10 +32,21 @@ jobs:
       run: |
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }} .
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
-        
+    
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.8.5   # hoặc version anh cần
+    
     - name: Trigger Terraform
       run: |
         cd terraform
         terraform init
         terraform apply -auto-approve \
           -var="image_tag=${{ github.sha }}"
+      env:
+        AWS_REGION: ${{ env.AWS_REGION }}
+        AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
