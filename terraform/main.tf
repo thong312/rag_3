@@ -11,6 +11,7 @@ resource "aws_instance" "rag_server" {
   }
 
   user_data = templatefile("${path.module}/user-data.sh", {
+    ecr_registry   = var.ecr_registry
     ecr_repository = var.ecr_repository
     image_tag      = var.image_tag
     region         = var.aws_region
